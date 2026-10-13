@@ -105,7 +105,7 @@ def dependencies(work: Path, release: Path) -> str:
     shlibs = []
     for path in binaries:
         match = re.search(r"\(SONAME\).*\[(.+)\]", run("readelf", "-d", str(path)))
-        if match:
+        if match and ".so." in match[1]:
             name, major = match[1].rsplit(".so.", 1)
             shlibs.append(f"{name} {major} {PACKAGE}")
     local = debian / "shlibs.local"

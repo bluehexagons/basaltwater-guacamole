@@ -66,13 +66,17 @@ class RuntimeDependencyTests(unittest.TestCase):
             (release / "sbin/guacd").touch()
             library = release / "lib/libguac-client-rdp.so.0.0.0"
             library.touch()
+            plugin = release / "lib/guac-common-svc.so"
+            plugin.touch()
             with patch.object(build, "run", side_effect=[
                 "", " (SONAME) [libguac-client-rdp.so.0]",
+                " (SONAME) [guac-common-svc.so]",
                 "shlibs:Depends=libc6 (>= 2.41), libfreerdp3-3 (>= 3.15.0)"
             ]) as command:
                 depends = build.dependencies(root, release)
             self.assertIn("libfreerdp3-3", depends)
             self.assertIn(f"-e{library}", command.call_args.args)
+            self.assertIn(f"-e{plugin}", command.call_args.args)
             self.assertIn(f"-x{build.PACKAGE}", command.call_args.args)
 
     def test_runtime_smoke_rejects_development_packages_before_running_binaries(self):
