@@ -1,6 +1,6 @@
 # Basaltwater Guacamole binaries
 
-This repository builds an RDP-only Apache Guacamole runtime for Basaltwater.
+This repository builds an RDP and SSH Apache Guacamole runtime for Basaltwater.
 It tracks pinned Apache source archives rather than maintaining a source fork.
 Basaltwater's authenticated Python gateway and systemd services live in the
 [main repository](https://github.com/bluehexagons/basaltwater).
@@ -14,13 +14,20 @@ The package alone does not configure or start services.
 ## Build and verification
 
 The release manifest pins both Apache archives by SHA-256. The builder rejects
-unsafe archive entries, configures only RDP support, and derives runtime package
+unsafe archive entries, enables RDP and SSH terminal support, and derives runtime package
 dependencies using dpkg-shlibdeps. Builds run natively on each architecture in
 Debian containers; no emulation is needed.
 
 Each package is then installed into a fresh Debian container. Verification
 checks for missing libraries, confirms that no development packages were
-installed, and exercises the native daemon's RDP protocol negotiation.
+installed, and exercises the native daemon's RDP and SSH protocol negotiation.
+SSH terminal rendering includes Pango and DejaVu fonts. VNC, Telnet, Kubernetes,
+SFTP services, recording tools and audio codecs are not configured by the builder.
+Basaltwater's gateway restricts connections and disables transfer channels.
+
+The development checkout on the shared Basaltwater VM is
+`/home/agent/repos/basaltwater-guacamole`; the main integration checkout is
+`/home/agent/repos/infra-tools`. These paths describe that VM, not installer paths.
 
 For a local native build with Docker:
 

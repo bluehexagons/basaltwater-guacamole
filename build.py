@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and check pinned, RDP-only Guacamole packages for Debian Trixie."""
+"""Build and check pinned RDP/SSH Guacamole packages for Debian Trixie."""
 from __future__ import annotations
 
 import argparse
@@ -23,7 +23,7 @@ PREFIX = Path("/opt/basaltwater-guacamole") / SPEC["build_version"]
 BUILD_PACKAGES = (
     "build-essential", "pkg-config", "dpkg-dev", "python3",
     "libcairo2-dev", "libjpeg62-turbo-dev", "libpng-dev", "uuid-dev",
-    "libssl-dev", "freerdp3-dev", "libwebp-dev",
+    "libssl-dev", "freerdp3-dev", "libwebp-dev", "libssh2-1-dev", "libpango1.0-dev",
 )
 
 
@@ -134,7 +134,7 @@ def build() -> None:
         release = stage / PREFIX.relative_to("/")
         print(f"Compiling Guacamole for {arch}", flush=True)
         run("./configure", f"--prefix={PREFIX}", "--with-rdp",
-            "--without-vnc", "--without-ssh", "--without-telnet", "--without-terminal",
+            "--without-vnc", "--with-ssh", "--without-telnet", "--with-terminal",
             "--without-pulse", "--without-vorbis", "--without-libavcodec",
             "--without-libavformat", "--without-libavutil", "--without-libswscale",
             "--disable-kubernetes", "--disable-guacenc", "--disable-guaclog",
@@ -142,8 +142,9 @@ def build() -> None:
             "CFLAGS=-O2 -Wno-error=deprecated-declarations", cwd=server)
         run("make", "-j2", cwd=server)
         run("make", "install", f"DESTDIR={stage}", cwd=server)
-        if not (release / "lib/libguac-client-rdp.so").is_file():
-            raise RuntimeError("RDP support was not built")
+        for protocol in ("rdp", "ssh"):
+            if not (release / f"lib/libguac-client-{protocol}.so").is_file():
+                raise RuntimeError(f"{protocol.upper()} support was not built")
         shutil.rmtree(release / "include")
         if (release / "lib/pkgconfig").exists():
             shutil.rmtree(release / "lib/pkgconfig")
@@ -163,7 +164,7 @@ def build() -> None:
         for component, source in (("server", server), ("client", client)):
             for name in ("LICENSE", "NOTICE"):
                 shutil.copyfile(source / name, share / f"{name}.{component}")
-        depends = dependencies(work, release)
+        depends = dependencies(work, release) + ", fonts-dejavu-core"
         metadata = {**SPEC, "architecture": arch, "distribution": "trixie",
                     "dependencies": depends,
                     "build_commit": os.environ.get("GUACAMOLE_BUILD_COMMIT", "local")}
@@ -177,7 +178,7 @@ def build() -> None:
             "Maintainer: Basaltwater <maintainers@basaltwater.invalid>\n"
             f"Depends: {depends}\n"
             "Homepage: https://github.com/bluehexagons/basaltwater-guacamole\n"
-            "Description: RDP-only Guacamole runtime for Basaltwater\n"
+            "Description: RDP and SSH Guacamole runtime for Basaltwater\n"
             " Native guacd and JavaScript client; services are managed by Basaltwater.\n"
         )
         for path in [release / "sbin/guacd", *(release / "lib").rglob("*.so*")]:
@@ -224,19 +225,22 @@ def smoke() -> None:
                     if daemon.poll() is not None or time.monotonic() >= deadline:
                         raise RuntimeError("guacd failed to listen")
                     time.sleep(0.1)
-            with connection:
-                connection.settimeout(10)
-                connection.sendall(b"6.select,3.rdp;")
-                response = b""
-                while b";" not in response:
-                    chunk = connection.recv(65536)
-                    if not chunk or len(response) + len(chunk) > 65536:
-                        raise RuntimeError("Invalid RDP handshake")
-                    response += chunk
-                for argument in (b"VERSION_1_5_0", b"cert-fingerprints",
-                                 b"disable-copy", b"disable-paste"):
-                    if argument not in response:
-                        raise RuntimeError(f"RDP handshake missing {argument!r}")
+            connection.close()
+            for protocol, required in (
+                (b"rdp", (b"cert-fingerprints",)),
+                (b"ssh", (b"host-key", b"enable-sftp", b"font-name")),
+            ):
+                with socket.create_connection(("127.0.0.1", 41822), timeout=10) as connection:
+                    connection.sendall(b"6.select,3." + protocol + b";")
+                    response = b""
+                    while b";" not in response:
+                        chunk = connection.recv(65536)
+                        if not chunk or len(response) + len(chunk) > 65536:
+                            raise RuntimeError(f"Invalid {protocol!r} handshake")
+                        response += chunk
+                    for argument in (b"VERSION_1_5_0", b"disable-copy", b"disable-paste", *required):
+                        if argument not in response:
+                            raise RuntimeError(f"{protocol!r} handshake missing {argument!r}")
         finally:
             daemon.terminate()
             try:
@@ -244,7 +248,7 @@ def smoke() -> None:
             except subprocess.TimeoutExpired:
                 daemon.kill()
                 daemon.wait(timeout=5)
-    print("Runtime dependency and RDP handshake checks passed", flush=True)
+    print("Runtime dependency and RDP/SSH handshake checks passed", flush=True)
 
 
 def container_build(engine: str) -> None:

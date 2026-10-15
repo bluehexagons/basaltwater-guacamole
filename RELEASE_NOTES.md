@@ -1,4 +1,9 @@
-Pinned Apache Guacamole 1.6.0 with Basaltwater's RDP-only configuration.
+Pinned Apache Guacamole 1.6.0 with Basaltwater's RDP and SSH configuration.
+
+Adds the native SSH client, terminal renderer and DejaVu fonts for browser shell
+access. Runtime smoke checks now negotiate both RDP and SSH, including SSH host
+key pinning support. Authentication and fixed local destinations remain the
+responsibility of the Basaltwater gateway.
 
 Packages support Debian 13 (Trixie), amd64 and arm64. Both architectures are
 built natively and checked in fresh Debian containers using only the declared

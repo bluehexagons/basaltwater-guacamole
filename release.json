@@ -1,7 +1,7 @@
 {
   "upstream_version": "1.6.0",
-  "build_version": "1.6.0-bw1",
-  "package_version": "1.6.0-1+bw1",
+  "build_version": "1.6.0-bw2",
+  "package_version": "1.6.0-1+bw2",
   "sources": {
     "server": "8bc45675da96d7b6f39728160181e3d4ff3c08f460f6d26de5805b642bf13f2b",
     "client": "81f9fd5a7b4377fb0ee295d0d4fec92e9667f2aafaa3d0ed8937f535deabdee4"
