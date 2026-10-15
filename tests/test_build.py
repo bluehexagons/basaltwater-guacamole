@@ -85,9 +85,10 @@ class RuntimeDependencyTests(unittest.TestCase):
                 build.smoke()
 
     def test_unsupported_architecture_has_no_build_fallback(self):
-        with patch.object(build, "run", return_value="riscv64"):
-            with self.assertRaisesRegex(RuntimeError, "Unsupported"):
-                build.architecture()
+        for arch in ("arm64", "riscv64"):
+            with self.subTest(arch=arch), patch.object(build, "run", return_value=arch):
+                with self.assertRaisesRegex(RuntimeError, "Unsupported"):
+                    build.architecture()
 
 
 if __name__ == "__main__":

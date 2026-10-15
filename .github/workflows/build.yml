@@ -18,8 +18,6 @@ jobs:
         include:
           - architecture: amd64
             runner: ubuntu-24.04
-          - architecture: arm64
-            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 40
     steps:

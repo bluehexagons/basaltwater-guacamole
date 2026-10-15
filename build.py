@@ -37,7 +37,7 @@ def run(*args: str, cwd: Path | None = None) -> str:
 
 def architecture() -> str:
     arch = run("dpkg", "--print-architecture")
-    if arch not in {"amd64", "arm64"}:
+    if arch != "amd64":
         raise RuntimeError(f"Unsupported architecture: {arch}")
     return arch
 

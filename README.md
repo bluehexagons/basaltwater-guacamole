@@ -5,7 +5,7 @@ It tracks pinned Apache source archives rather than maintaining a source fork.
 Basaltwater's authenticated Python gateway and systemd services live in the
 [main repository](https://github.com/bluehexagons/basaltwater).
 
-The initial packages support Debian 13 (Trixie) on amd64 and arm64. They include
+Packages support Debian 13 (Trixie) on amd64. They include
 guacd, its private libraries, and the JavaScript client. Development headers,
 static libraries, Java, Tomcat, and databases are omitted. Normal Debian shared
 libraries are declared as package dependencies, allowing APT security updates.
@@ -15,7 +15,7 @@ The package alone does not configure or start services.
 
 The release manifest pins both Apache archives by SHA-256. The builder rejects
 unsafe archive entries, enables RDP and SSH terminal support, and derives runtime package
-dependencies using dpkg-shlibdeps. Builds run natively on each architecture in
+dependencies using dpkg-shlibdeps. Builds run natively on amd64 in
 Debian containers; no emulation is needed.
 
 Each package is then installed into a fresh Debian container. Verification
@@ -43,14 +43,16 @@ change binaries, so this is not a promise of bit-for-bit reproducibility.
 
 Update release.json with reviewed Apache source hashes and a new build/package
 version, then commit and push. After the branch build passes, tag that commit as
-v followed by the build_version and push the tag. Tag CI rebuilds, verifies both
-architectures, and publishes versioned packages with SHA-256 files. Existing
+v followed by the build_version and push the tag. Tag CI rebuilds, verifies
+the amd64 runtime, and publishes versioned packages with SHA-256 files. Existing
 releases are never overwritten by the workflow.
 
-Before updating Basaltwater, inspect the release run and pin the SHA-256 of each
+Before updating Basaltwater, inspect the release run and pin the SHA-256 of the
 downloaded package in its installer. The installer must not trust a mutable
 latest URL or an unpinned checksum downloaded alongside the package. Unsupported
 platforms should fail explicitly rather than compile source on the target.
+Historical arm64 assets are retained in earlier releases; arm64 is unsupported
+and no longer built or tested.
 
 ## Licensing
 
